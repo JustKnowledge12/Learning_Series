@@ -1,0 +1,42 @@
+using System;
+
+public class Singleton
+{
+    
+    private static readonly Singleton _instance = new Singleton();
+
+    // Private constructor to prevent instantiation
+    private Singleton()
+    {
+        
+    }
+
+    
+    public static Singleton Instance
+    {
+        get
+        {
+            return _instance;
+        }
+    }
+
+    
+    public int Data { get; set; }
+}
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        
+        Singleton singleton1 = Singleton.Instance;
+        singleton1.Data = 10;
+
+        
+        Singleton singleton2 = Singleton.Instance;
+        Console.WriteLine("Data from singleton2: " + singleton2.Data); // Outputs: 10
+
+        
+        Console.WriteLine(object.ReferenceEquals(singleton1, singleton2)); // Outputs: True
+    }
+}
