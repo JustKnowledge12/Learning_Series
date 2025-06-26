@@ -1,0 +1,59 @@
+#Define an Abstract Product
+public interface IProduct
+{
+    void Display();
+}
+# Create Concrete Products
+public class ConcreteProductA : IProduct
+{
+    public void Display()
+    {
+        Console.WriteLine("This is Product A");
+    }
+}
+
+public class ConcreteProductB : IProduct
+{
+    public void Display()
+    {
+        Console.WriteLine("This is Product B");
+    }
+}
+# Abstrac Factory
+public abstract class Creator
+{
+    public abstract IProduct FactoryMethod();
+}
+#Implement Concrete Creators
+public class ConcreteCreatorA : Creator
+{
+    public override IProduct FactoryMethod()
+    {
+        return new ConcreteProductA();
+    }
+}
+
+public class ConcreteCreatorB : Creator
+{
+    public override IProduct FactoryMethod()
+    {
+        return new ConcreteProductB();
+    }
+}
+#Client Code Usage
+public class ConcreteCreatorA : Creator
+{
+    public override IProduct FactoryMethod()
+    {
+        return new ConcreteProductA();
+    }
+}
+
+public class ConcreteCreatorB : Creator
+{
+    public override IProduct FactoryMethod()
+    {
+        return new ConcreteProductB();
+    }
+}
+
