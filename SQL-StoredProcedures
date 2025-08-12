@@ -45,3 +45,35 @@ BEGIN
     
     SELECT SCOPE_IDENTITY() AS NewEmployeeID;
 END;
+
+      EXERCISE 4:
+=====================
+
+EXEC sp_GetEmployeesByDepartment @DepartmentID = 1;
+
+
+   EXERCISE 5:
+===============
+
+CREATE PROCEDURE sp_GetEmployeeCountByDepartment
+    
+    @DepartmentID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+   
+    SELECT
+        COUNT(EmployeeID) AS TotalEmployees
+    FROM
+        Employees
+    WHERE
+        DepartmentID = @DepartmentID;
+END;
+
+3}
+EXEC sp_GetEmployeeCountByDepartment @DepartmentID = 1;
+
+
+
+
