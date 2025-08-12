@@ -1,0 +1,47 @@
+-- Exercise 1: Create a Stored Procedure to Get Employees by Department
+-- =====================================================================
+
+-- Goal: Create a stored procedure to retrieve employee details by department.
+
+CREATE PROCEDURE sp_GetEmployeesByDepartment
+    
+    @DepartmentID INT
+AS
+BEGIN
+    
+    SET NOCOUNT ON;
+
+    -- 2. Write the SQL query to select employee details based on the DepartmentID.
+    -- This joins Employees and Departments to get the DepartmentName as well.
+    SELECT
+        e.EmployeeID,
+        e.FirstName,
+        e.LastName,
+        d.DepartmentName,
+        e.Salary,
+        e.JoinDate
+    FROM
+        Employees AS e
+    JOIN
+        Departments AS d ON e.DepartmentID = d.DepartmentID
+    WHERE
+        e.DepartmentID = @DepartmentID;
+END;
+
+STEP 3:
+CREATE PROCEDURE sp_InsertEmployee
+    @FirstName VARCHAR(50),
+    @LastName VARCHAR(50),
+    @DepartmentID INT,
+    @Salary DECIMAL(10, 2),
+    @JoinDate DATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO Employees (FirstName, LastName, DepartmentID, Salary, JoinDate)
+    VALUES (@FirstName, @LastName, @DepartmentID, @Salary, @JoinDate);
+
+    
+    SELECT SCOPE_IDENTITY() AS NewEmployeeID;
+END;
