@@ -1,0 +1,57 @@
+
+
+
+using NUnit.Framework;
+using Moq;
+using CustomerCommLib;
+
+namespace CustomerComm.Tests
+{
+    
+    public class CustomerCommTests
+    {
+        private Mock<IMailSender> _mockMailSender;
+        private CustomerComm _customerComm;
+
+     
+        public void Setup()
+        {
+            // 1. Create a mock object of the dependency (IMailSender)
+            _mockMailSender = new Mock<IMailSender>();
+
+           
+            _mockMailSender.Setup(m => m.SendMail(It.IsAny<string>(), It.IsAny<string>()))
+                           .Returns(true);
+
+
+            _customerComm = new CustomerComm(_mockMailSender.Object);
+        }
+
+       
+        public void SendMailToCustomer_WhenMailIsSentSuccessfully_ShouldReturnTrue()
+        {
+         
+            bool result = _customerComm.SendMailToCustomer();
+
+           
+            Assert.IsTrue(result, "The SendMailToCustomer method should return true when the mail is sent successfully.");
+
+            
+            _mockMailSender.Verify(m => m.SendMail(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        }
+    }
+}
+
+
+
+namespace CalcLibrary
+{
+    public class Calculator
+    {
+        
+        public int Add(int a, int b)
+        {
+            return a + b;
+        }
+    }
+}
