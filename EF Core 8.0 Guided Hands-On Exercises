@@ -1,0 +1,26 @@
+Lab 1: Understanding ORM with a Retail Inventory System 
+
+An ORM like Entity Framework Core uses a set of conventions and configurations to create this mapping.
+A C# class is mapped to a database table.
+Properties within the class are mapped to columns in the table. The ORM automatically infers the SQL data type from the C# type.
+This is where ORMs truly shine. They map navigation properties in your classes to foreign key relationships in the database.
+
+STEP 2
+======
+Feature	Entity Framework Core (EF Core)	Entity Framework 6 (EF Framework)
+Platform	Cross-platform (Windows, macOS, Linux). The standard for .NET 6/7/8+.	Windows-only. Tied to the legacy .NET Framework.
+Philosophy	Lightweight, modular, and extensible. Rewritten from the ground up for performance.	Monolithic and mature. Contains many features built up over years.
+Performance	Higher performance. Optimized for modern application needs.	Generally slower than EF Core.
+Features	Supports modern features like async queries, dependency injection, compiled queries, and shadow properties. Also supports non-relational databases (e.g., Cosmos DB).	Has some mature features not yet in EF Core (e.g., EDMX visual designer), but the gap is now very small.
+Recommendation	The default choice for all new .NET applications.	Primarily for maintaining existing applications built on the .NET Framework.
+
+STEP 3
+======
+JSON Column Mapping: This is a major feature. You can now map a C# object to a single JSON column in your database. This is perfect for storing semi-structured data, documents, or complex properties without needing to create separate tables. Best of all, you can write LINQ queries that translate to native JSON queries on the database side.
+
+Improved Performance with Compiled Models: When your application starts, EF Core builds an internal "model" of your database context, which can take time. Compiled models allow this work to be done at build time, generating C# code that represents the model. This significantly reduces application startup time, which is especially important for serverless functions and microservices.
+Interceptors and Better Bulk Operations:
+Interceptors provide powerful hooks to intercept database operations. You can use them for logging, auditing, or changing a command just before it's sent to the database.
+EF Core 8 introduces ExecuteUpdate and ExecuteDelete methods that perform bulk operations directly in the database without first loading entities into memory. This is vastly more efficient than the traditional method of fetching data, changing it, and then saving it back.
+
+
