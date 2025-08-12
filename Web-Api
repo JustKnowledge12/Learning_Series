@@ -1,0 +1,590 @@
+1. First Web Api using .Net core
+
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}
+
+var builder = WebApplication.CreateBuilder(args);
+
+
+builder.Services.AddControllers();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
+
+
+
+using Microsoft.AspNetCore.Mvc;
+
+namespace WebApiProject.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class ValuesController : ControllerBase
+    {
+        private static readonly List<string> Values = new List<string>
+        {
+            "value1", "value2"
+        };
+
+       
+        [HttpGet]
+        public IEnumerable<string> Get()
+        {
+            return Values;
+        }
+
+        
+        [HttpGet("{id}")]
+        public string Get(int id)
+        {
+            if (id >= 0 && id < Values.Count)
+            {
+                return Values[id];
+            }
+            return "Not Found";
+        }
+
+        
+        [HttpPost]
+        public void Post([FromBody] string value)
+        {
+            Values.Add(value);
+        }
+
+  
+        [HttpPut("{id}")]
+        public void Put(int id, [FromBody] string value)
+        {
+            if (id >= 0 && id < Values.Count)
+            {
+                Values[id] = value;
+            }
+        }
+
+       
+        [HttpDelete("{id}")]
+        public void Delete(int id)
+        {
+            if (id >= 0 && id < Values.Count)
+            {
+                Values.RemoveAt(id);
+            }
+        }
+    }
+}
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+2.Web Api using .Net core with Swagger
+=====================================
+
+
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}
+*/
+
+
+namespace WebApiProject.Models
+{
+    public class Skill
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
+
+    public class Department
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
+
+    public class Employee
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public int Salary { get; set; }
+        public bool Permanent { get; set; }
+        public Department Department { get; set; }
+        public List<Skill> Skills { get; set; }
+        public DateTime DateOfBirth { get; set; }
+    }
+}
+
+
+
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+
+namespace WebApiProject.Filters
+{
+    public class CustomAuthFilter : ActionFilterAttribute
+    {
+        public override void OnActionExecuting(ActionExecutingContext context)
+        {
+            // Check if the 'Authorization' header is present
+            if (!context.HttpContext.Request.Headers.ContainsKey("Authorization"))
+            {
+                context.Result = new BadRequestObjectResult("Invalid request - No Auth token");
+                return;
+            }
+
+            // Check if the header value contains 'Bearer'
+            string authHeader = context.HttpContext.Request.Headers["Authorization"];
+            if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+            {
+                context.Result = new BadRequestObjectResult("Invalid request - Token present but Bearer unavailable");
+                return;
+            }
+
+            base.OnActionExecuting(context);
+        }
+    }
+}
+
+
+
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+
+namespace WebApiProject.Filters
+{
+    public class CustomExceptionFilter : IExceptionFilter
+    {
+        public void OnException(ExceptionContext context)
+        {
+            // Log the exception to a file
+            // In a real app, use a proper logging framework
+            string logMessage = $"Exception occurred: {context.Exception.Message}\nStackTrace: {context.Exception.StackTrace}\n\n";
+            File.AppendAllText("exceptions.log", logMessage);
+
+            // Set the result to a generic 500 error response
+            var result = new ObjectResult("An unexpected error occurred. Please try again later.")
+            {
+                StatusCode = StatusCodes.Status500InternalServerError
+            };
+
+            context.Result = result;
+            context.ExceptionHandled = true; // Mark the exception as handled
+        }
+    }
+}
+
+
+
+using Microsoft.AspNetCore.Mvc;
+using WebApiProject.Filters;
+using WebApiProject.Models;
+
+namespace WebApiProject.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    [CustomAuthFilter] // Apply the custom authorization filter to the entire controller
+    public class EmployeeController : ControllerBase
+    {
+        private readonly List<Employee> _employees;
+
+        public EmployeeController()
+        {
+            // In a real application, this data would come from a database.
+            _employees = GetStandardEmployeeList();
+        }
+
+      
+        [HttpGet]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<List<Employee>> Get()
+        {
+           
+        }
+
+      
+        [HttpGet("{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public ActionResult<Employee> Get(int id)
+        {
+            var employee = _employees.FirstOrDefault(e => e.Id == id);
+            if (employee == null)
+            {
+                return NotFound();
+            }
+            return Ok(employee);
+        }
+
+        
+        [HttpPost]
+        public void Post([FromBody] Employee employee)
+        {
+            // Logic to add an employee
+            // _employees.Add(employee);
+        }
+
+      
+        [HttpPut("{id}")]
+        public void Put(int id, [FromBody] Employee employee)
+        {
+            // Logic to update an employee
+        }
+
+       
+        private List<Employee> GetStandardEmployeeList()
+        {
+            return new List<Employee>
+            {
+                new Employee
+                {
+                    Id = 1,
+                    Name = "John Doe",
+                    Salary = 80000,
+                    Permanent = true,
+                    Department = new Department { Id = 10, Name = "IT" },
+                    Skills = new List<Skill>
+                    {
+                        new Skill { Id = 1, Name = "C#" },
+                        new Skill { Id = 2, Name = "SQL" }
+                    },
+                    DateOfBirth = new DateTime(1990, 5, 20)
+                },
+                new Employee
+                {
+                    Id = 2,
+                    Name = "Jane Smith",
+                    Salary = 95000,
+                    Permanent = true,
+                    Department = new Department { Id = 20, Name = "HR" },
+                    Skills = new List<Skill>
+                    {
+                        new Skill { Id = 3, Name = "Recruiting" },
+                        new Skill { Id = 4, Name = "Administration" }
+                    },
+                    DateOfBirth = new DateTime(1988, 8, 15)
+                }
+            };
+        }
+    }
+}
+
+
+
+using WebApiProject.Filters;
+
+var builder = WebApplication.CreateBuilder(args);
+
+
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<CustomExceptionFilter>();
+});
+
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+3.Web Api CRUD operation
+========================
+
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}
+*/
+
+
+
+namespace WebApiProject.Models
+{
+    public class Skill
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
+
+    public class Department
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
+
+    public class Employee
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public int Salary { get; set; }
+        public bool Permanent { get; set; }
+        public Department Department { get; set; }
+        public List<Skill> Skills { get; set; }
+        public DateTime DateOfBirth { get; set; }
+    }
+}
+
+
+
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+
+namespace WebApiProject.Filters
+{
+    public class CustomAuthFilter : ActionFilterAttribute
+    {
+        public override void OnActionExecuting(ActionExecutingContext context)
+        {
+            // Check if the 'Authorization' header is present
+            if (!context.HttpContext.Request.Headers.ContainsKey("Authorization"))
+            {
+                context.Result = new BadRequestObjectResult("Invalid request - No Auth token");
+                return;
+            }
+
+            // Check if the header value contains 'Bearer'
+            string authHeader = context.HttpContext.Request.Headers["Authorization"];
+            if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+            {
+                context.Result = new BadRequestObjectResult("Invalid request - Token present but Bearer unavailable");
+                return;
+            }
+
+            base.OnActionExecuting(context);
+        }
+    }
+}
+
+
+
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+
+namespace WebApiProject.Filters
+{
+    public class CustomExceptionFilter : IExceptionFilter
+    {
+        public void OnException(ExceptionContext context)
+        {
+            // Log the exception to a file
+            // In a real app, use a proper logging framework
+            string logMessage = $"Exception occurred: {context.Exception.Message}\nStackTrace: {context.Exception.StackTrace}\n\n";
+            File.AppendAllText("exceptions.log", logMessage);
+
+            // Set the result to a generic 500 error response
+            var result = new ObjectResult("An unexpected error occurred. Please try again later.")
+            {
+                StatusCode = StatusCodes.Status500InternalServerError
+            };
+
+            context.Result = result;
+            context.ExceptionHandled = true; // Mark the exception as handled
+        }
+    }
+}
+
+
+
+using Microsoft.AspNetCore.Mvc;
+using WebApiProject.Filters;
+using WebApiProject.Models;
+
+namespace WebApiProject.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    [CustomAuthFilter] // Apply the custom authorization filter to the entire controller
+    public class EmployeeController : ControllerBase
+    {
+        private readonly List<Employee> _employees;
+
+        public EmployeeController()
+        {
+            // In a real application, this data would come from a database.
+            _employees = GetStandardEmployeeList();
+        }
+
+        
+        [HttpGet]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<List<Employee>> Get()
+        {
+            // Throw an exception to test the custom exception filter
+            // throw new InvalidOperationException("This is a test exception from the GET method.");
+            
+            // Return the list of employees
+            return Ok(_employees);
+        }
+
+       
+        [HttpGet("{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public ActionResult<Employee> Get(int id)
+        {
+            var employee = _employees.FirstOrDefault(e => e.Id == id);
+            if (employee == null)
+            {
+                return NotFound();
+            }
+            return Ok(employee);
+        }
+
+     
+        [HttpPost]
+        public void Post([FromBody] Employee employee)
+        {
+            // Logic to add an employee
+            // _employees.Add(employee);
+        }
+
+   
+        [HttpPut("{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public ActionResult<Employee> Put(int id, [FromBody] Employee employeeIn)
+        {
+            if (id <= 0)
+            {
+                return BadRequest("Invalid employee id");
+            }
+
+            var employeeToUpdate = _employees.FirstOrDefault(e => e.Id == id);
+
+            if (employeeToUpdate == null)
+            {
+                return BadRequest("Invalid employee id");
+            }
+
+          
+            employeeToUpdate.Name = employeeIn.Name;
+            employeeToUpdate.Salary = employeeIn.Salary;
+            employeeToUpdate.Permanent = employeeIn.Permanent;
+            employeeToUpdate.Department = employeeIn.Department;
+            employeeToUpdate.Skills = employeeIn.Skills;
+            employeeToUpdate.DateOfBirth = employeeIn.DateOfBirth;
+
+            return Ok(employeeToUpdate);
+        }
+
+       
+        private List<Employee> GetStandardEmployeeList()
+        {
+            return new List<Employee>
+            {
+                new Employee
+                {
+                    Id = 1,
+                    Name = "John Doe",
+                    Salary = 80000,
+                    Permanent = true,
+                    Department = new Department { Id = 10, Name = "IT" },
+                    Skills = new List<Skill>
+                    {
+                        new Skill { Id = 1, Name = "C#" },
+                        new Skill { Id = 2, Name = "SQL" }
+                    },
+                    DateOfBirth = new DateTime(1990, 5, 20)
+                },
+                new Employee
+                {
+                    Id = 2,
+                    Name = "Jane Smith",
+                    Salary = 95000,
+                    Permanent = true,
+                    Department = new Department { Id = 20, Name = "HR" },
+                    Skills = new List<Skill>
+                    {
+                        new Skill { Id = 3, Name = "Recruiting" },
+                        new Skill { Id = 4, Name = "Administration" }
+                    },
+                    DateOfBirth = new DateTime(1988, 8, 15)
+                }
+            };
+        }
+    }
+}
+
+
+
+using WebApiProject.Filters;
+
+var builder = WebApplication.CreateBuilder(args);
+
+
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<CustomExceptionFilter>();
+});
+
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
+
