@@ -1,0 +1,202 @@
+EXERCISE 1:RANKING AND WINDOW FUNCTIONS
+STEP 1:USING ROW NUMBER
+
+WITH RankedProducts AS (
+    SELECT
+        ProductName,
+        Category,
+        Price,
+        ROW_NUMBER() OVER (PARTITION BY Category ORDER BY Price DESC) as RowNum
+    FROM
+        Products
+)
+SELECT
+    ProductName,
+    Category,
+    Price,
+    RowNum
+FROM
+    RankedProducts
+WHERE
+    RowNum <= 3;
+STEP 2:Use RANK() and DENSE_RANK() to compare how ties are handled.
+WITH RankedProducts AS (
+    SELECT
+        ProductName,
+        Category,
+        Price,
+        RANK() OVER (PARTITION BY Category ORDER BY Price DESC) as Rnk
+    FROM
+        Products
+)
+SELECT
+    ProductName,
+    Category,
+    Price,
+    Rnk
+FROM
+    RankedProducts
+WHERE
+    Rnk <= 3;
+
+Exercise 2: Aggregation with GROUPING SETS, CUBE, and ROLLUP
+ Goal: Analyze sales data across multiple dimensions.
+ Scenario:
+ Generate a report showing total quantity sold by Region and Category using GROUPING SETS, ROLLUP, and CUBE.
+ Steps:
+ 1. Join Orders, OrderDetails, Customers, and Products.
+ 2. Use GROUPING SETS to get totals by Region, Category, and both.
+ 3. Use ROLLUP to get subtotals and grand totals.
+ 4. Use CUBE to get all combinations of Region and Category.
+
+STEP 1:
+FROM       Orders AS o
+JOIN       OrderDetails AS od ON o.OrderID = od.OrderID
+JOIN       Customers AS c ON o.CustomerID = c.CustomerID
+JOIN       Products AS p ON od.ProductID = p.ProductID
+
+STEP 2:
+SELECT
+    c.Region,
+    p.Category,
+    SUM(od.Quantity) AS TotalQuantity
+FROM
+    Orders AS o
+    JOIN OrderDetails AS od ON o.OrderID = od.OrderID
+    JOIN Customers AS c ON o.CustomerID = c.CustomerID
+    JOIN Products AS p ON od.ProductID = p.ProductID
+GROUP BY
+    GROUPING SETS (
+        (c.Region, p.Category), -- Aggregation by both
+        (c.Region),             -- Aggregation by Region only
+        (p.Category),           -- Aggregation by Category only
+        ()                      -- Grand total
+    )
+ORDER BY
+    c.Region, p.Category;
+STEP 3:
+SELECT
+    c.Region,
+    p.Category,
+    SUM(od.Quantity) AS TotalQuantity
+FROM
+    Orders AS o
+    JOIN OrderDetails AS od ON o.OrderID = od.OrderID
+    JOIN Customers AS c ON o.CustomerID = c.CustomerID
+    JOIN Products AS p ON od.ProductID = p.ProductID
+GROUP BY
+    ROLLUP (c.Region, p.Category)
+ORDER BY
+    c.Region, p.Category;
+
+Goal: Use WITH, CTEs, Recursive CTEs, and MERGE.
+ Scenario:
+ a) Create a recursive CTE to generate a calendar table.
+ b) Use a MERGE statement to update or insert product prices from a staging table.
+ Steps:
+ 1. Create a recursive CTE to generate dates from '2025-01-01' to '2025-01-31'.
+ 2. Create a StagingProducts table with updated prices.
+ 3. Use MERGE to update existing products or insert new ones
+
+STEP 1:
+WITH CalendarDates (DateValue) AS (
+    -- 1. Anchor Member: The starting point of the recursion
+    SELECT
+        CAST('2025-01-01' AS DATE) AS DateValue
+
+    UNION ALL
+
+    -- 2. Recursive Member: References the CTE itself
+    SELECT
+        DATEADD(day, 1, DateValue)
+    FROM
+        CalendarDates
+    WHERE
+        DateValue < '2025-01-31' -- The condition that stops the recursion
+)
+-- Select all the generated dates from the CTE
+SELECT DateValue FROM CalendarDates
+
+STEP 2:
+-- This is our main, production table
+CREATE TABLE Products (
+    ProductID INT PRIMARY KEY,
+    ProductName VARCHAR(100),
+    Price DECIMAL(10, 2)
+);
+
+-- This is our temporary table with incoming data
+CREATE TABLE StagingProducts (
+    ProductID INT PRIMARY KEY,
+    ProductName VARCHAR(100),
+    Price DECIMAL(10, 2)
+);
+
+-- Populate the main table with some initial data
+INSERT INTO Products (ProductID, ProductName, Price) VALUES
+(101, 'Laptop', 1200.00),         -- Price will be updated
+(102, 'Mouse', 25.00),            -- This record will not be changed
+(103, 'Keyboard', 75.00);        -- Price will be updated
+
+-- Populate the staging table with new and updated data
+INSERT INTO StagingProducts (ProductID, ProductName, Price) VALUES
+(101, 'Laptop', 1150.00),         -- Updated price for an existing product
+(103, 'Keyboard', 80.00),         -- Updated price for an existing product
+(104, 'Webcam', 55.00);           -- A completely new product
+
+Exercise 4: PIVOT and UNPIVOT
+ Goal: Transform data for reporting.
+ Scenario:
+ Show monthly sales quantity per product in a pivoted format, and then unpivot it back.
+ Steps:
+ 1. Aggregate sales by Product and Month.
+ 2. Use PIVOT to convert rows into columns (one column per month).
+ 3. Use UNPIVOT to convert the pivoted data back into row format.
+
+STEP 1 & 2:
+SELECT
+    ProductName,
+    [Jan], [Feb], [Mar] -- These are the new columns created by the PIVOT
+FROM
+    (
+        -- This subquery provides the source data for the PIVOT operation
+        SELECT
+            ProductName,
+            Quantity,
+            SaleMonth
+        FROM
+            MonthlySales
+    ) AS SourceTable
+PIVOT
+    (
+        SUM(Quantity) -- 1. Aggregate function
+        FOR SaleMonth -- 2. Pivoting column
+        IN ([Jan], [Feb], [Mar]) -- 3. List of new columns
+    ) AS PivotTable;
+
+STEP 3:
+-- First, define the pivoted data in a CTE
+WITH PivotedData AS (
+    SELECT
+        ProductName,
+        [Jan], [Feb], [Mar]
+    FROM
+        (SELECT ProductName, Quantity, SaleMonth FROM MonthlySales) AS SourceTable
+    PIVOT
+        (SUM(Quantity) FOR SaleMonth IN ([Jan], [Feb], [Mar])) AS PivotTable
+)
+
+-- Now, unpivot the data from the CTE
+SELECT
+    ProductName,
+    Quantity,
+    SaleMonth
+FROM
+    PivotedData
+UNPIVOT
+    (
+        Quantity -- 1. Column to hold the values from the pivoted columns
+        FOR SaleMonth -- 2. Column to hold the names of the pivoted columns
+        IN ([Jan], [Feb], [Mar]) -- 3. The list of columns to unpivot
+    ) AS UnpivotTable;
+
